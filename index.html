@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>개인정보 안전 점검기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gothic+A1:wght@400;600;700&display=swap">
+<style>
+/* Layout: 한 장짜리 카드 앱 — 상황 고르기 → 질문(기본 4개 + 내가 추가한 질문) → 신호등 결과 → 직접 프롬프트 써 보고 피드백 받기 */
+:root{
+  --bg:#eef5fb; --surface:#ffffff; --soft:#e3eef8; --line:#cddceb;
+  --ink:#1b2a3a; --muted:#5b6b7d;
+  --accent:#2f6fe4; --accent-ink:#ffffff; --accent-soft:#dfe9fd;
+  --green:#1f9d55; --green-soft:#e2f6ea; --yellow:#c98a00; --yellow-soft:#fff4d6; --red:#d6453d; --red-soft:#fde5e3;
+  --f-display:"Jua","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"Gothic A1","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111a24; --surface:#18232f; --soft:#1f2d3b; --line:#2c3d4f;
+  --ink:#e7eef6; --muted:#a5b4c4;
+  --accent:#6e9ef5; --accent-ink:#0d1622; --accent-soft:#1e2f4a;
+  --green:#4fd08a; --green-soft:#16301f; --yellow:#f2c14e; --yellow-soft:#3a2f12; --red:#f07a72; --red-soft:#3b1c1b;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111a24; --surface:#18232f; --soft:#1f2d3b; --line:#2c3d4f;
+  --ink:#e7eef6; --muted:#a5b4c4;
+  --accent:#6e9ef5; --accent-ink:#0d1622; --accent-soft:#1e2f4a;
+  --green:#4fd08a; --green-soft:#16301f; --yellow:#f2c14e; --yellow-soft:#3a2f12; --red:#f07a72; --red-soft:#3b1c1b;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;word-break:keep-all;overflow-wrap:anywhere}
+.wrap{max-width:660px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;line-height:1.3;text-wrap:balance}
+h1{font-size:clamp(1.7rem,6vw,2.2rem)}
+h2{font-size:1.4rem}
+h3{font-size:1.1rem}
+p{margin:0}
+.brand{display:flex;align-items:center;gap:12px}
+.lock{width:46px;height:46px;border-radius:12px;background:var(--accent);display:grid;place-items:center;flex:none}
+.lock svg{width:24px;height:24px}
+.sub{color:var(--muted);font-size:.95rem}
+.notice{display:flex;gap:10px;align-items:flex-start;background:var(--accent-soft);border-radius:12px;padding:12px 14px;font-size:.9rem}
+.notice b{color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;display:grid;gap:16px;min-width:0}
+.label{font-size:.82rem;font-weight:700;color:var(--muted);letter-spacing:.02em}
+.options{display:grid;gap:10px}
+.opt{font:inherit;text-align:left;width:100%;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer;display:grid;gap:2px;transition:border-color .15s,background .15s}
+.opt:hover{border-color:var(--accent)}
+.opt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt b{font-weight:700}
+.opt span{font-size:.88rem;color:var(--muted)}
+.situ{background:var(--soft);border-radius:12px;padding:12px 14px;font-size:.9rem;display:grid;gap:4px}
+.progress{display:grid;gap:6px}
+.progress i{height:8px;border-radius:4px;background:var(--line)}
+.progress i.on{background:var(--accent)}
+.progress i.mine{background:var(--soft);outline:2px dashed var(--line);outline-offset:-2px}
+.progress i.mine.on{background:var(--accent);outline:0}
+.qnum{font-family:var(--f-display);color:var(--accent);font-size:1rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.row.end{justify-content:flex-end}
+.btn{font:inherit;font-weight:700;border-radius:12px;padding:11px 18px;cursor:pointer;border:2px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:7px 12px;font-size:.88rem;border-radius:10px}
+.btn.danger{color:var(--red);border-color:var(--red-soft);background:var(--surface)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.linkbtn{font:inherit;font-weight:700;background:none;border:0;color:var(--accent);cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+.linkbtn:disabled{color:var(--muted);text-decoration:none;cursor:not-allowed}
+.result{border-radius:18px;padding:22px;display:grid;gap:8px;border:2px solid var(--c);background:var(--cs)}
+.result.compact{padding:16px;border-radius:14px}
+.result .light{display:flex;align-items:center;gap:12px}
+.result .dot{width:44px;height:44px;border-radius:50%;background:var(--c);flex:none;display:grid;place-items:center;color:var(--surface);font-family:var(--f-display);font-size:1.3rem}
+.result.compact .dot{width:34px;height:34px;font-size:1rem}
+.result h2,.result h3{color:var(--ink)}
+.r-green{--c:var(--green);--cs:var(--green-soft)}
+.r-yellow{--c:var(--yellow);--cs:var(--yellow-soft)}
+.r-red{--c:var(--red);--cs:var(--red-soft)}
+.lights{display:flex;gap:6px}
+.lights span{width:14px;height:14px;border-radius:50%;background:var(--line)}
+.lights span.on{background:var(--c)}
+.review{display:grid;gap:0;list-style:none;margin:0;padding:0}
+.review li{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line)}
+.review li:first-child{border-top:0;padding-top:0}
+.mark{width:22px;height:22px;border-radius:50%;margin-top:3px;background:var(--c)}
+.review .why{font-size:.95rem}
+.review .tip{grid-column:2;font-size:.88rem;color:var(--muted)}
+.rewrite{display:grid;gap:8px}
+.bubble{border-radius:12px;padding:12px 14px;font-size:.92rem;display:grid;gap:2px}
+.bubble small{font-weight:700;font-size:.78rem}
+.bubble.before{background:var(--red-soft)}.bubble.before small{color:var(--red)}
+.bubble.after{background:var(--green-soft)}.bubble.after small{color:var(--green)}
+/* practice */
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:inherit;font-size:.86rem;font-weight:600;padding:7px 12px;border-radius:999px;border:2px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.tab.sel{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.tab:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+textarea{font:inherit;font-size:1rem;width:100%;min-height:132px;resize:vertical;padding:14px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--ink);line-height:1.6}
+textarea:focus{outline:none;border-color:var(--accent)}
+.count{font-size:.8rem;color:var(--muted)}
+.found{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;gap:6px;align-items:center;font-size:.84rem;padding:4px 10px;border-radius:999px;background:var(--soft)}
+.chip b{font-weight:700}
+.chip.block{background:var(--red-soft);color:var(--red)}
+.chip.warn{background:var(--yellow-soft)}
+.chip.ok{background:var(--green-soft);color:var(--green)}
+.fb{display:grid;gap:10px}
+.fb ul{margin:0;padding-left:1.2em;display:grid;gap:4px;font-size:.93rem}
+.warnline{font-size:.84rem;color:var(--muted)}
+.sec{display:grid;gap:6px}
+/* 점검 항목 추가 */
+.addbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:2px dashed var(--line);border-radius:14px;padding:12px 14px}
+.addbar p{font-size:.9rem;color:var(--muted)}
+.mine-tag{display:inline-block;font-family:var(--f-body);font-size:.74rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.base-tag{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.qlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.qlist li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--soft)}
+.qlist li.mine{background:var(--accent-soft)}
+.qlist .n{font-family:var(--f-display);color:var(--accent);min-width:1.4em}
+.qlist .t{display:grid;gap:2px;min-width:0}
+.qlist .t small{color:var(--muted);font-size:.82rem}
+.field{display:grid;gap:6px}
+.field input[type=text],.field select{font:inherit;font-size:1rem;width:100%;padding:11px 12px;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--ink)}
+.field input[type=text]:focus,.field select:focus{outline:none;border-color:var(--accent)}
+.ansrow{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center;padding:12px;border-radius:12px;background:var(--cs)}
+.ansrow .dot{width:16px;height:16px;border-radius:50%;background:var(--c)}
+.ansrow .lbl{font-size:.84rem;font-weight:700;color:var(--c)}
+.ansrow .two{grid-column:1/-1;display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
+.ansrow input{font:inherit;font-size:.95rem;width:100%;padding:9px 11px;border-radius:10px;border:2px solid var(--line);background:var(--surface);color:var(--ink);min-width:0}
+.ansrow input:focus{outline:none;border-color:var(--accent)}
+@media (max-width:460px){.ansrow .two{grid-template-columns:1fr}}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:.92rem}
+.check input{width:18px;height:18px;margin-top:3px;accent-color:var(--red)}
+.msg{font-size:.9rem;font-weight:600}
+.msg.err{color:var(--red)}
+.msg.ok{color:var(--green)}
+.empty{font-size:.9rem;color:var(--muted);padding:10px 12px;border-radius:12px;background:var(--soft)}
+footer{font-size:.82rem;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="brand">
+    <div class="lock" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="var(--accent-ink)"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="var(--accent-ink)" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+    <div>
+      <h1>개인정보 안전 점검기</h1>
+      <p class="sub" id="subline">AI에게 알려주기 전에, 4가지만 물어봐요</p>
+    </div>
+  </header>
+
+  <div class="notice" role="note"><span aria-hidden="true">🔒</span><p><b>실제 이름·전화번호·학교·사진은 쓰지 않아요.</b> 모든 활동은 가상 사례로 해요. 내가 추가한 점검 항목은 이 기기에만 남고, 다른 사람에게 보이지 않아요.</p></div>
+
+  <main id="app" aria-live="polite"></main>
+
+  <footer>생각할 질문을 만들어 주는 교육용 도구예요. 법적 판단을 대신하지 않아요.</footer>
+</div>
+
+<script>
+var SITUATIONS=[
+  {id:'photo',title:'친구 얼굴 사진으로 직업 추천받기',short:'친구 사진 · 직업 추천',desc:'친구 사진을 AI에 올리고 어울리는 직업을 물어봐요.',
+   goal:'나 또는 친구에게 어울리는 직업을 추천받고 싶어요.',
+   before:'(친구 얼굴 사진 첨부) 이 친구한테 어울리는 직업 알려줘.',
+   after:'운동을 좋아하고 그림 그리기를 즐기는 가상 인물에게 어울리는 직업을 알려줘.',
+   sample:'내 친구 민지 얼굴 사진이야. 이 친구 얼굴 보고 어울리는 직업 추천해 줘.'},
+  {id:'place',title:'학교·학년·시간·장소 넣고 고민 상담하기',short:'학교·시간·장소 · 고민 상담',desc:'내 학교와 자주 가는 곳을 말하면서 고민을 털어놔요.',
+   goal:'친구 관계 고민을 AI에게 상담받고 싶어요.',
+   before:'나는 한빛중 2학년이고 매일 오후 4시에 학교 후문 공원에 있어. 요즘 친구 문제로 고민이야.',
+   after:'중학생이 친구 관계로 고민할 때 도움이 되는 방법을 알려줘.',
+   sample:'나는 한빛중 2학년 서윤이야. 매일 오후 4시에 솔빛공원에서 친구들을 만나는데 요즘 한 친구랑 사이가 안 좋아. 어떻게 해야 할까?'},
+  {id:'study',title:'개인정보 없이 공부 방법 묻기',short:'공부 방법 묻기',desc:'나에 대한 정보 없이 공부 방법만 물어봐요.',
+   goal:'수학 숙제를 잘하는 공부 방법을 알고 싶어요.',
+   before:null,
+   after:'중학생이 수학 숙제를 어려워할 때 공부 방법을 추천해 줘.',
+   sample:'중학생이 수학 숙제에서 방정식 문제를 어려워할 때 쓸 수 있는 공부 방법 3가지를 알려줘.'}
+];
+var QUESTIONS=[
+  {q:'이 정보가 꼭 필요한가요?',hint:'목적을 이루는 데 정말 필요한지 생각해 봐요.',opts:[
+    {t:'꼭 필요해요',s:0,why:'목적에 필요한 정보라고 판단했어요.',tip:'필요한 만큼만 넣고 나머지는 지워요.'},
+    {t:'잘 모르겠어요',s:1,why:'필요한지 확실하지 않아요.',tip:'먼저 빼고 물어본 뒤, 답이 부족하면 그때 더해요.'},
+    {t:'없어도 돼요',s:2,why:'필요 없는 정보가 들어 있어요.',tip:'이름·학교는 ‘중학생’처럼 바꿔 써요.'}]},
+  {q:'누구의 정보인가요? 동의를 받았나요?',hint:'내 정보인지, 다른 사람 정보인지 확인해요.',opts:[
+    {t:'내 정보예요',s:0,why:'내 정보예요.',tip:'내 정보도 꼭 필요한 만큼만 써요.'},
+    {t:'다른 사람 정보, 동의 받았어요',s:1,why:'다른 사람이 허락했어요.',tip:'어디에, 왜 쓰는지도 알려줬는지 확인해요.'},
+    {t:'다른 사람 정보, 동의 안 받았어요',s:'red',why:'다른 사람 정보인데 허락을 받지 않았어요.',tip:'먼저 허락을 받거나, 가상 인물로 바꿔요.'}]},
+  {q:'다른 정보와 합쳐지면 누구인지 알 수 있나요?',hint:'학교, 학년, 시간, 장소처럼 작은 정보도 모이면 커져요.',opts:[
+    {t:'아니요',s:0,why:'합쳐도 누구인지 알기 어려워요.',tip:'지금처럼 일반적인 표현을 써요.'},
+    {t:'조금 그럴 수 있어요',s:1,why:'몇 가지가 모이면 알아볼 수도 있어요.',tip:'학교·시간·장소 중 필요 없는 것은 빼요.'},
+    {t:'네, 알 수 있어요',s:2,why:'정보가 모이면 누구인지 알 수 있어요.',tip:'학교·학년·시간·장소를 함께 쓰지 않아요.'}]},
+  {q:'개인정보 없이 해결할 방법이 있나요?',hint:'가상 인물이나 일반적인 표현으로도 같은 답을 얻을 수 있는지 봐요.',opts:[
+    {t:'없어요',s:0,why:'개인정보 없이는 해결하기 어려운 상황이에요.',tip:'이름·연락처처럼 누구인지 알 수 있는 부분은 꼭 빼요.'},
+    {t:'잘 모르겠어요',s:1,why:'다른 방법이 있는지 아직 잘 모르겠어요.',tip:'‘중학생’, ‘가상 인물’로 바꿔서 한 번 물어봐요.'},
+    {t:'있어요',s:2,why:'개인정보 없이도 해결할 수 있어요.',tip:'개인정보를 빼고 질문해요.'}]}
+];
+var LEVELS={
+  green:{cls:'r-green',icon:'✓',title:'안전하게 사용할 수 있어요',msg:'좋아요. 지금처럼 필요한 것만 물어보면 돼요.'},
+  yellow:{cls:'r-yellow',icon:'!',title:'한 번 더 확인해 보세요',msg:'조금 걱정되는 부분이 있어요. 아래 팁을 보고 질문을 다듬어 봐요.'},
+  red:{cls:'r-red',icon:'✕',title:'정보를 줄이거나 다른 방법을 찾아보세요',msg:'이대로 입력하면 위험할 수 있어요. 정보를 빼거나 바꿔서 물어봐요.'}
+};
+
+/* 프롬프트 속 개인정보 찾기 규칙 (페이지 안에서만 계산) */
+var RULES=[
+  {kind:'전화번호',block:true,re:/01[016789][-.\s]?\d{3,4}[-.\s]?\d{4}/g,tip:'전화번호는 절대 쓰지 않아요.'},
+  {kind:'이메일',block:true,re:/[\w.+-]+@[\w-]+\.[\w.]+/g,tip:'이메일 주소는 쓰지 않아요.'},
+  {kind:'주민등록번호',block:true,re:/\d{6}\s?-\s?[1-4]\d{6}/g,tip:'주민등록번호는 절대 쓰지 않아요.'},
+  {kind:'이름',id:true,re:/(?<=(?:나는|저는|이름은|학년|학생)\s?)(?!친구|중학|고등|초등)[가-힣]{2,3}?(?=이야|야[\s.,!?]|야$|이고|이에요|예요|입니다|라고)|(?<=내 친구\s?)(?!들)[가-힣]{2,3}?(?=\s|이[가는의랑]|[가는의랑])/g,tip:'이름은 필요 없어요. ‘중학생’, ‘친구’로 바꿔요.'},
+  {kind:'학교',id:true,re:/[가-힣]{1,8}(?:초등학교|중학교|고등학교)|[가-힣]{2,6}(?:초|중|고)(?=\s?\d\s?학년)/g,tip:'학교 이름 대신 ‘중학생’이라고 써요.'},
+  {kind:'학년',id:true,re:/\d\s?학년/g,tip:'학년은 학교 이름과 함께 쓰면 더 쉽게 알아볼 수 있어요.'},
+  {kind:'시간',id:true,re:/(?:오전|오후|아침|저녁|밤)\s?\d{1,2}\s?시|\d{1,2}\s?시(?=\s?(?:에|쯤|마다|부터|까지))/g,tip:'자주 있는 시간은 빼도 답을 받을 수 있어요.'},
+  {kind:'장소',id:true,re:/[가-힣]{0,6}(?:공원|후문|정문|학원|아파트|놀이터|편의점|PC방|정류장|도서관|역 앞)/g,tip:'자주 가는 장소는 쓰지 않아요.'},
+  {kind:'주소',id:true,re:/[가-힣]{1,6}(?:로|길)\s?\d{1,4}|[가-힣]{1,6}동\s?\d{1,4}\s?호?/g,tip:'주소는 쓰지 않아요.'},
+  {kind:'사진·얼굴',re:/사진|얼굴|셀카|셀피|영상|목소리/g,tip:'사진 대신 말로 설명하거나 가상 인물로 바꿔요.'},
+  {kind:'다른 사람',re:/친구|동생|언니|오빠|누나|엄마|아빠|선생님|형(?=[이은는의가]|\s)/g,tip:'다른 사람 정보는 허락을 받았는지 먼저 확인해요.'},
+  {kind:'건강',re:/먹는 약|약 이름|복용|병원|진단|질환|아파서/g,tip:'건강 정보는 꼭 필요할 때만 쓰고, 이름·학교는 빼요.'}
+];
+
+/* ---------- 내가 추가한 점검 항목 (이 기기 브라우저에만 저장) ---------- */
+var STORE_KEY='privacy-checker-custom-v1',MAX_Q=6,MAX_W=10;
+var custom={questions:[],words:[]};
+try{var raw=localStorage.getItem(STORE_KEY);if(raw){var p=JSON.parse(raw);
+  if(p&&Array.isArray(p.questions))custom.questions=p.questions.slice(0,MAX_Q);
+  if(p&&Array.isArray(p.words))custom.words=p.words.slice(0,MAX_W)}}catch(e){}
+function saveCustom(){try{localStorage.setItem(STORE_KEY,JSON.stringify(custom))}catch(e){}}
+
+function allQ(){
+  return QUESTIONS.concat(custom.questions.map(function(c){
+    return{q:c.q,hint:c.hint||'내가 추가한 점검 질문이에요.',mine:true,opts:c.opts.map(function(o,i){
+      return{t:o.t,s:i===2&&c.hard?'red':i,why:'「'+c.q+'」에 “'+o.t+'”라고 답했어요.',tip:o.tip||(i===0?'지금처럼 조심해서 써요.':i===1?'한 번 더 확인하고 써요.':'이 정보는 빼거나 바꿔서 써요.')}})}
+  }));
+}
+function blankAnswers(){return allQ().map(function(){return null})}
+function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function allRules(){
+  return RULES.concat(custom.words.filter(function(w){return w.words&&w.words.length}).map(function(w){
+    return{kind:w.kind,mine:true,block:w.level==='block',warn:w.level!=='block',re:new RegExp(w.words.map(escRe).join('|'),'g'),
+      tip:w.tip||(w.level==='block'?'‘'+w.kind+'’ 정보는 쓰지 않기로 했어요.':'‘'+w.kind+'’ 정보가 꼭 필요한지 확인해요.')}}));
+}
+
+function analyze(text){
+  var found=[],kinds={};
+  allRules().forEach(function(r){
+    var m,seen={};r.re.lastIndex=0;
+    while((m=r.re.exec(text))!==null){
+      var t=m[0].trim();if(!t||seen[t]){if(m[0]==='')r.re.lastIndex++;continue}
+      seen[t]=1;found.push({kind:r.kind,text:t,block:!!r.block,id:!!r.id,warn:!!r.warn,mine:!!r.mine,tip:r.tip});kinds[r.kind]=1;
+    }
+  });
+  var ids=0;['이름','학교','학년','시간','장소','주소'].forEach(function(k){if(kinds[k])ids++});
+  var baseBlocked=found.some(function(f){return f.block&&!f.mine});
+  var mineBlocked=found.filter(function(f){return f.block&&f.mine});
+  var mineWarn=found.filter(function(f){return f.warn});
+  var blocked=baseBlocked||mineBlocked.length>0;
+  var level='green',reasons=[];
+  if(baseBlocked){level='red';reasons.push('전화번호·이메일처럼 절대 쓰면 안 되는 정보가 있어요.')}
+  if(mineBlocked.length){level='red';reasons.push('내가 ‘금지’로 정한 낱말이 있어요: '+uniq(mineBlocked.map(function(f){return f.text})).join(', '))}
+  if(kinds['사진·얼굴']&&kinds['다른 사람']){level='red';reasons.push('다른 사람의 사진·얼굴이 들어 있어요. 허락 없이는 쓰지 않아요.')}
+  if(ids>=3){level='red';reasons.push('학교·학년·시간·장소 같은 정보가 '+ids+'가지나 모여 있어요. 합치면 누구인지 알 수 있어요.')}
+  else if(ids>0){if(level!=='red')level='yellow';reasons.push('누구인지 알아볼 수 있는 정보가 '+ids+'가지 있어요.')}
+  if(mineWarn.length){if(level==='green')level='yellow';reasons.push('내가 ‘주의’로 정한 낱말이 있어요: '+uniq(mineWarn.map(function(f){return f.text})).join(', '))}
+  if(level==='green'&&(kinds['사진·얼굴']||kinds['건강'])){level='yellow';reasons.push('사진이나 건강 정보가 들어 있어요. 꼭 필요한지 확인해요.')}
+  if(level==='green'&&kinds['다른 사람'])reasons.push('다른 사람 이야기가 있지만 누구인지 알 수 있는 정보는 없어요.');
+  if(level==='green')reasons.push('누구인지 알아볼 수 있는 정보를 찾지 못했어요.');
+  return{found:found,level:level,reasons:reasons,blocked:blocked,ids:ids};
+}
+function uniq(a){var o={},r=[];a.forEach(function(x){if(!o[x]){o[x]=1;r.push(x)}});return r}
+
+var state={step:'pick',situ:null,answers:blankAnswers(),ret:'pick'};
+var drafts={};
+var app=document.getElementById('app');
+
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+function judge(ans){
+  var Qs=allQ(),n=ans.length,red=false,score=0;
+  ans.forEach(function(i,qi){var o=Qs[qi].opts[i];if(o.s==='red')red=true;else score+=o.s});
+  if(red)return{level:'red',score:score,forced:true};
+  return{level:score<=Math.floor(n/4)?'green':score<=Math.floor(n*3/4)?'yellow':'red',score:score,forced:false};
+}
+function optColor(o){return o.s==='red'||o.s===2?'var(--red)':o.s===1?'var(--yellow)':'var(--green)'}
+function lightsHtml(level){var h='';['green','yellow','red'].forEach(function(k){h+='<span class="'+(k===level?'on':'')+'"></span>'});return h}
+function forcedReason(ans){
+  var Qs=allQ(),r=[];
+  ans.forEach(function(i,qi){if(Qs[qi].opts[i].s==='red')r.push(Qs[qi].mine?'내가 추가한 질문 「'+Qs[qi].q+'」에서 “'+Qs[qi].opts[i].t+'”를 골라서 빨강이에요.':'다른 사람 정보인데 동의를 받지 않아서 빨강이에요.')});
+  return r;
+}
+function updateSub(){document.getElementById('subline').textContent='AI에게 알려주기 전에, '+allQ().length+'가지만 물어봐요'}
+
+function renderPick(){
+  var nq=custom.questions.length,nw=custom.words.length;
+  var html='<section class="card"><div><span class="label">1단계</span><h2>어떤 상황인가요?</h2></div><div class="options" role="group" aria-label="예시 상황">';
+  SITUATIONS.forEach(function(s,i){
+    html+='<button type="button" class="opt'+(state.situ===i?' sel':'')+'" id="situ-'+s.id+'" data-i="'+i+'"><b>'+esc(s.title)+'</b><span>'+esc(s.desc)+'</span></button>';
+  });
+  html+='</div><div class="row"><button type="button" class="linkbtn" id="practiceBtn"'+(state.situ===null?' disabled':'')+'>프롬프트 쓰기 바로 하기</button><button type="button" class="btn primary" id="startBtn"'+(state.situ===null?' disabled':'')+'>점검 시작</button></div>'+
+    '<div class="addbar"><p>'+(nq||nw?'내가 추가한 점검 질문 <b>'+nq+'개</b>, 찾을 낱말 <b>'+nw+'묶음</b>이 함께 쓰여요.':'점검기에 없는 위험을 발견했나요? 나만의 점검 질문과 낱말을 더할 수 있어요.')+'</p>'+
+    '<button type="button" class="btn small" id="customBtn">⚙ 점검 항목 추가하기</button></div></section>';
+  app.innerHTML=html;
+  app.querySelectorAll('.opt').forEach(function(b){b.addEventListener('click',function(){state.situ=+b.dataset.i;renderPick();document.getElementById('startBtn').focus()})});
+  document.getElementById('startBtn').addEventListener('click',function(){state.answers=blankAnswers();state.step=0;render()});
+  document.getElementById('practiceBtn').addEventListener('click',function(){state.step='practice';render()});
+  document.getElementById('customBtn').addEventListener('click',function(){state.ret='pick';state.step='custom';render()});
+}
+
+function renderQ(n){
+  var Qs=allQ(),N=Qs.length,Q=Qs[n],S=SITUATIONS[state.situ];
+  var bars='';for(var i=0;i<N;i++)bars+='<i class="'+(i<=n?'on':'')+(Qs[i].mine?' mine':'')+'"></i>';
+  var html='<section class="card"><div class="progress" style="grid-template-columns:repeat('+N+',1fr)" aria-label="질문 '+(n+1)+' / '+N+'">'+bars+'</div>'+
+    '<div class="situ"><span class="label">고른 상황</span><b>'+esc(S.title)+'</b></div>'+
+    '<div style="display:grid;gap:4px"><span class="qnum">질문 '+(n+1)+' / '+N+(Q.mine?' <span class="mine-tag">내가 추가한 질문</span>':'')+'</span><h2>'+esc(Q.q)+'</h2><p class="sub">'+esc(Q.hint)+'</p></div>'+
+    '<div class="options" role="group" aria-label="답 고르기">';
+  Q.opts.forEach(function(o,i){html+='<button type="button" class="opt'+(state.answers[n]===i?' sel':'')+'" id="q'+n+'-o'+i+'" data-i="'+i+'"><b>'+esc(o.t)+'</b></button>'});
+  html+='</div><div class="row"><button type="button" class="btn" id="prevBtn">이전</button>'+
+    '<button type="button" class="btn primary" id="nextBtn"'+(state.answers[n]===null?' disabled':'')+'>'+(n===N-1?'결과 보기':'다음')+'</button></div></section>';
+  app.innerHTML=html;
+  app.querySelectorAll('.opt').forEach(function(b){b.addEventListener('click',function(){state.answers[n]=+b.dataset.i;renderQ(n);document.getElementById('nextBtn').focus()})});
+  document.getElementById('prevBtn').addEventListener('click',function(){state.step=n===0?'pick':n-1;render()});
+  document.getElementById('nextBtn').addEventListener('click',function(){state.step=n===N-1?'result':n+1;render()});
+}
+
+function renderResult(){
+  var Qs=allQ(),r=judge(state.answers),L=LEVELS[r.level],S=SITUATIONS[state.situ];
+  var html='<section class="result '+L.cls+'"><div class="light"><span class="dot" aria-hidden="true">'+L.icon+'</span><div><div class="lights" aria-hidden="true">'+lightsHtml(r.level)+'</div><h2>'+esc(L.title)+'</h2></div></div>'+
+    '<p>'+esc(L.msg)+'</p>'+
+    (r.forced?forcedReason(state.answers).map(function(t){return'<p><b>'+esc(t)+'</b></p>'}).join(''):'')+'</section>';
+  html+='<section class="card"><div><span class="label">내 답 돌아보기</span><h2>왜 이런 결과가 나왔을까?</h2></div><ul class="review">';
+  state.answers.forEach(function(i,qi){var o=Qs[qi].opts[i];
+    html+='<li><span class="mark" style="--c:'+optColor(o)+'" aria-hidden="true"></span><p class="why"><b>Q'+(qi+1)+'.</b> '+(Qs[qi].mine?'<span class="mine-tag">내 질문</span> ':'')+esc(o.why)+'</p><p class="tip">팁: '+esc(o.tip)+'</p></li>'});
+  html+='</ul></section>';
+  html+='<section class="card"><div><span class="label">이렇게 바꿔 물어봐요</span><h2>안전한 질문 예시</h2></div><div class="rewrite">'+
+    (S.before?'<div class="bubble before"><small>바꾸기 전</small>“'+esc(S.before)+'”</div>':'')+
+    '<div class="bubble after"><small>'+(S.before?'바꾼 뒤':'이미 안전한 질문')+'</small>“'+esc(S.after)+'”</div></div>'+
+    '<div class="row"><button type="button" class="btn" id="otherBtn">다른 상황 고르기</button><button type="button" class="btn" id="againBtn">다시 점검하기</button></div>'+
+    '<button type="button" class="btn primary" id="toPractice">이제 직접 프롬프트 써 보기 →</button></section>';
+  app.innerHTML=html;
+  document.getElementById('againBtn').addEventListener('click',function(){state.answers=blankAnswers();state.step=0;render()});
+  document.getElementById('otherBtn').addEventListener('click',function(){state.answers=blankAnswers();state.situ=null;state.step='pick';render()});
+  document.getElementById('toPractice').addEventListener('click',function(){state.step='practice';render()});
+}
+
+/* ---------- 점검 항목 추가하기 ---------- */
+var formDraft={q:'',hint:'',a:['','',''],t:['','',''],hard:false};
+var wordDraft={kind:'',words:'',level:'warn',tip:''};
+function renderCustom(note){
+  var Qs=allQ(),full=custom.questions.length>=MAX_Q,wfull=custom.words.length>=MAX_W;
+  var list='';Qs.forEach(function(q,i){
+    var ci=i-QUESTIONS.length;
+    list+='<li class="'+(q.mine?'mine':'')+'"><span class="n">'+(i+1)+'</span><span class="t"><b>'+esc(q.q)+'</b><small>'+q.opts.map(function(o){return esc(o.t)}).join(' · ')+(q.mine&&custom.questions[ci].hard?' · 빨강 답이면 바로 빨강':'')+'</small></span>'+
+      (q.mine?'<button type="button" class="btn small danger" data-delq="'+ci+'" aria-label="'+esc(q.q)+' 지우기">지우기</button>':'<span class="base-tag">기본</span>')+'</li>'});
+  var wlist='';custom.words.forEach(function(w,i){
+    wlist+='<li class="mine"><span class="n">'+(w.level==='block'?'🔴':'🟡')+'</span><span class="t"><b>'+esc(w.kind)+'</b><small>'+w.words.map(esc).join(', ')+' · '+(w.level==='block'?'금지(빨강)':'주의(노랑)')+'</small></span>'+
+      '<button type="button" class="btn small danger" data-delw="'+i+'" aria-label="'+esc(w.kind)+' 낱말 지우기">지우기</button></li>'});
+  var cols=[['green','안전한 답 (초록)','예: 괜찮아요','팁: 지금처럼 써도 돼요'],['yellow','헷갈리는 답 (노랑)','예: 잘 모르겠어요','팁: 한 번 더 확인해요'],['red','위험한 답 (빨강)','예: 안 괜찮아요','팁: 이 정보는 빼고 써요']];
+  var ans='';cols.forEach(function(c,i){
+    ans+='<div class="ansrow r-'+c[0]+'"><span class="dot" aria-hidden="true"></span><span class="lbl">'+c[1]+'</span><div class="two">'+
+      '<input type="text" id="cq-a'+i+'" maxlength="30" placeholder="'+c[2]+'" aria-label="'+c[1]+' 문장" value="'+esc(formDraft.a[i])+'">'+
+      '<input type="text" id="cq-t'+i+'" maxlength="60" placeholder="'+c[3]+'" aria-label="'+c[1]+' 팁" value="'+esc(formDraft.t[i])+'"></div></div>'});
+  var html='<section class="card"><div><span class="label">점검 항목 관리</span><h2>나만의 점검 항목 추가하기</h2><p class="sub">점검기가 놓치는 위험을 찾았다면 질문과 낱말을 직접 더해요. 추가한 항목은 점검 질문과 프롬프트 연습에 바로 쓰여요.</p></div>'+
+    (note?'<p class="msg '+note.cls+'" role="status">'+esc(note.text)+'</p>':'')+
+    '<div class="sec"><span class="label">지금 점검 질문 ('+Qs.length+'개)</span><ol class="qlist">'+list+'</ol></div></section>';
+  html+='<section class="card"><div><span class="label">추가 ① 점검 질문</span><h3>새 점검 질문 만들기 <span class="sub">('+custom.questions.length+' / '+MAX_Q+')</span></h3></div>'+
+    (full?'<p class="empty">질문은 '+MAX_Q+'개까지 더할 수 있어요. 하나를 지우면 새로 만들 수 있어요.</p>':
+    '<div class="field"><label class="label" for="cq-q">질문</label><input type="text" id="cq-q" maxlength="60" placeholder="예: 이 정보가 인터넷에 계속 남아도 괜찮나요?" value="'+esc(formDraft.q)+'"></div>'+
+    '<div class="field"><label class="label" for="cq-h">도움말 (선택)</label><input type="text" id="cq-h" maxlength="60" placeholder="예: AI에 보낸 글은 지우기 어려울 수 있어요." value="'+esc(formDraft.hint)+'"></div>'+
+    '<div class="sec"><span class="label">답 3개와 팁 (답은 꼭 쓰고, 팁은 선택)</span>'+ans+'</div>'+
+    '<label class="check"><input type="checkbox" id="cq-hard"'+(formDraft.hard?' checked':'')+'><span>빨강 답을 고르면 다른 답과 상관없이 <b>바로 빨강</b>으로 판정해요. (기본 질문 2번처럼)</span></label>'+
+    '<p class="msg err" id="cq-err" role="alert"></p>'+
+    '<div class="row end"><button type="button" class="btn primary" id="cq-add">질문 추가하기</button></div>')+'</section>';
+  html+='<section class="card"><div><span class="label">추가 ② 찾을 낱말</span><h3>프롬프트에서 찾을 낱말 더하기 <span class="sub">('+custom.words.length+' / '+MAX_W+')</span></h3><p class="sub">프롬프트 연습에서 이 낱말이 나오면 표시해 줘요. 예: 게임 닉네임, SNS 아이디, 교복, 학원 이름</p></div>'+
+    (wlist?'<ol class="qlist">'+wlist+'</ol>':'<p class="empty">아직 더한 낱말이 없어요.</p>')+
+    (wfull?'<p class="empty">낱말 묶음은 '+MAX_W+'개까지 더할 수 있어요.</p>':
+    '<div class="field"><label class="label" for="cw-k">정보 종류 이름</label><input type="text" id="cw-k" maxlength="12" placeholder="예: SNS 아이디" value="'+esc(wordDraft.kind)+'"></div>'+
+    '<div class="field"><label class="label" for="cw-w">찾을 낱말 (쉼표로 나눠 쓰기)</label><input type="text" id="cw-w" maxlength="120" placeholder="예: 인스타, 아이디, 닉네임, 계정" value="'+esc(wordDraft.words)+'"></div>'+
+    '<div class="field"><label class="label" for="cw-l">이 낱말이 나오면</label><select id="cw-l"><option value="warn"'+(wordDraft.level==='warn'?' selected':'')+'>주의 (노랑) · 꼭 필요한지 확인해요</option><option value="block"'+(wordDraft.level==='block'?' selected':'')+'>금지 (빨강) · 꼭 지우고 써요</option></select></div>'+
+    '<div class="field"><label class="label" for="cw-t">고치는 팁 (선택)</label><input type="text" id="cw-t" maxlength="60" placeholder="예: 아이디 대신 ‘SNS를 하는 중학생’이라고 써요." value="'+esc(wordDraft.tip)+'"></div>'+
+    '<p class="msg err" id="cw-err" role="alert"></p>'+
+    '<div class="row end"><button type="button" class="btn primary" id="cw-add">낱말 추가하기</button></div>')+'</section>';
+  html+='<div class="row"><button type="button" class="btn" id="backBtn">← 돌아가기</button>'+
+    (custom.questions.length||custom.words.length?'<button type="button" class="btn small danger" id="resetAll">내가 추가한 항목 모두 지우기</button>':'')+'</div>';
+  app.innerHTML=html;
+
+  function bindDraft(id,fn){var el=document.getElementById(id);if(el)el.addEventListener('input',function(){fn(el)})}
+  bindDraft('cq-q',function(el){formDraft.q=el.value});
+  bindDraft('cq-h',function(el){formDraft.hint=el.value});
+  [0,1,2].forEach(function(i){bindDraft('cq-a'+i,function(el){formDraft.a[i]=el.value});bindDraft('cq-t'+i,function(el){formDraft.t[i]=el.value})});
+  var hard=document.getElementById('cq-hard');if(hard)hard.addEventListener('change',function(){formDraft.hard=hard.checked});
+  bindDraft('cw-k',function(el){wordDraft.kind=el.value});
+  bindDraft('cw-w',function(el){wordDraft.words=el.value});
+  bindDraft('cw-t',function(el){wordDraft.tip=el.value});
+  var sel=document.getElementById('cw-l');if(sel)sel.addEventListener('change',function(){wordDraft.level=sel.value});
+
+  var addQ=document.getElementById('cq-add');
+  if(addQ)addQ.addEventListener('click',function(){
+    var q=formDraft.q.trim(),a=formDraft.a.map(function(s){return s.trim()}),err=document.getElementById('cq-err');
+    if(!q){err.textContent='질문을 써 주세요.';document.getElementById('cq-q').focus();return}
+    var miss=a.indexOf('');if(miss>-1){err.textContent='답 3개를 모두 써 주세요.';document.getElementById('cq-a'+miss).focus();return}
+    if(allQ().some(function(x){return x.q===q})){err.textContent='이미 같은 질문이 있어요.';return}
+    custom.questions.push({q:q,hint:formDraft.hint.trim(),hard:formDraft.hard,opts:a.map(function(t,i){return{t:t,tip:formDraft.t[i].trim()}})});
+    saveCustom();formDraft={q:'',hint:'',a:['','',''],t:['','',''],hard:false};
+    state.answers=blankAnswers();updateSub();
+    renderCustom({cls:'ok',text:'「'+q+'」 질문을 추가했어요. 이제 점검할 때 '+allQ().length+'번째로 나와요.'});
+  });
+  var addW=document.getElementById('cw-add');
+  if(addW)addW.addEventListener('click',function(){
+    var kind=wordDraft.kind.trim(),err=document.getElementById('cw-err');
+    var words=uniq(wordDraft.words.split(/[,，、]/).map(function(s){return s.trim()}).filter(function(s){return s.length>=1})).slice(0,12);
+    if(!kind){err.textContent='정보 종류 이름을 써 주세요.';document.getElementById('cw-k').focus();return}
+    if(!words.length){err.textContent='찾을 낱말을 하나 이상 써 주세요.';document.getElementById('cw-w').focus();return}
+    custom.words.push({kind:kind,words:words,level:wordDraft.level,tip:wordDraft.tip.trim()});
+    saveCustom();wordDraft={kind:'',words:'',level:'warn',tip:''};
+    renderCustom({cls:'ok',text:'‘'+kind+'’ 낱말 '+words.length+'개를 추가했어요. 프롬프트 연습에서 바로 찾아 줘요.'});
+  });
+  app.querySelectorAll('[data-delq]').forEach(function(b){b.addEventListener('click',function(){
+    var q=custom.questions.splice(+b.dataset.delq,1)[0];saveCustom();state.answers=blankAnswers();updateSub();
+    renderCustom({cls:'ok',text:'「'+q.q+'」 질문을 지웠어요.'})})});
+  app.querySelectorAll('[data-delw]').forEach(function(b){b.addEventListener('click',function(){
+    var w=custom.words.splice(+b.dataset.delw,1)[0];saveCustom();
+    renderCustom({cls:'ok',text:'‘'+w.kind+'’ 낱말을 지웠어요.'})})});
+  var reset=document.getElementById('resetAll');
+  if(reset)reset.addEventListener('click',function(){
+    if(reset.dataset.armed){custom={questions:[],words:[]};saveCustom();state.answers=blankAnswers();updateSub();renderCustom({cls:'ok',text:'내가 추가한 항목을 모두 지웠어요. 기본 질문 4개만 남았어요.'});return}
+    reset.dataset.armed='1';reset.textContent='한 번 더 누르면 모두 지워져요';
+  });
+  document.getElementById('backBtn').addEventListener('click',function(){state.step=state.ret||'pick';render()});
+}
+
+/* ---------- 프롬프트 연습 ---------- */
+function renderPractice(){
+  var S=SITUATIONS[state.situ];
+  if(drafts[S.id]===undefined)drafts[S.id]=S.sample;
+  var tabs='';SITUATIONS.forEach(function(s,i){tabs+='<button type="button" class="tab'+(i===state.situ?' sel':'')+'" id="tab-'+s.id+'" data-i="'+i+'">'+esc(s.short)+'</button>'});
+  var html='<section class="card">'+
+    '<div><span class="label">프롬프트 연습</span><h2>AI에게 보낼 질문을 직접 써 봐요</h2></div>'+
+    '<div class="tabs" role="group" aria-label="상황 바꾸기">'+tabs+'</div>'+
+    '<div class="situ"><span class="label">상황</span><b>'+esc(S.title)+'</b><span>목표: '+esc(S.goal)+'</span></div>'+
+    '<div class="sec"><label class="label" for="promptBox">내 프롬프트 (가상 정보만 써요)</label>'+
+    '<textarea id="promptBox" maxlength="500" placeholder="예: 중학생이 친구 관계로 고민할 때 도움이 되는 방법을 알려줘.">'+esc(drafts[S.id])+'</textarea>'+
+    '<div class="row"><span class="count" id="count"></span><span style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn small" id="sampleBtn">위험한 예시 넣기</button><button type="button" class="btn small" id="clearBtn">지우기</button></span></div></div>'+
+    '<div id="localFb" class="fb"></div>'+
+    '<div class="row"><button type="button" class="btn" id="backBtn">상황 고르기로</button><button type="button" class="btn" id="checkBtn">점검 질문 다시 하기</button></div>'+
+    '<div class="addbar"><p>점검기가 놓친 정보가 있나요? 찾을 낱말로 더해 봐요.</p><button type="button" class="btn small" id="customBtn">⚙ 점검 항목 추가하기</button></div>'+
+    '</section>';
+  app.innerHTML=html;
+  var box=document.getElementById('promptBox');
+  box.addEventListener('input',function(){drafts[S.id]=box.value;updateLocal()});
+  document.getElementById('sampleBtn').addEventListener('click',function(){box.value=S.sample;drafts[S.id]=S.sample;updateLocal();box.focus()});
+  document.getElementById('clearBtn').addEventListener('click',function(){box.value='';drafts[S.id]='';updateLocal();box.focus()});
+  app.querySelectorAll('.tab').forEach(function(b){b.addEventListener('click',function(){state.situ=+b.dataset.i;renderPractice()})});
+  document.getElementById('backBtn').addEventListener('click',function(){state.step='pick';render()});
+  document.getElementById('checkBtn').addEventListener('click',function(){state.answers=blankAnswers();state.step=0;render()});
+  document.getElementById('customBtn').addEventListener('click',function(){state.ret='practice';state.step='custom';render()});
+  updateLocal();
+}
+
+function updateLocal(){
+  var box=document.getElementById('promptBox');if(!box)return;
+  var text=box.value,el=document.getElementById('localFb');
+  document.getElementById('count').textContent=text.length+' / 500자';
+  if(!text.trim()){el.innerHTML='<p class="sub">프롬프트를 쓰면 바로 기본 피드백이 나와요.</p>';return}
+  var a=analyze(text),L=LEVELS[a.level];
+  var chips='';
+  if(a.found.length){a.found.forEach(function(f){chips+='<span class="chip '+(f.block?'block':(f.id||f.warn)?'warn':'')+'"><b>'+esc(f.kind)+(f.mine?' ★':'')+'</b>'+esc(f.text)+'</span>'})}
+  else chips='<span class="chip ok"><b>찾은 개인정보 없음</b></span>';
+  var tips={};a.found.forEach(function(f){tips[f.tip]=1});
+  var tipList=Object.keys(tips);
+  var html='<div class="result compact '+L.cls+'"><div class="light"><span class="dot" aria-hidden="true">'+L.icon+'</span><div><div class="lights" aria-hidden="true">'+lightsHtml(a.level)+'</div><h3>기본 피드백: '+esc(L.title)+'</h3></div></div>'+
+    '<ul>'+a.reasons.map(function(r){return'<li>'+esc(r)+'</li>'}).join('')+'</ul></div>'+
+    '<div class="sec"><span class="label">찾은 정보'+(custom.words.length?' (★ = 내가 추가한 낱말)':'')+'</span><div class="found">'+chips+'</div></div>'+
+    (tipList.length?'<div class="sec"><span class="label">이렇게 고쳐 봐요</span><ul>'+tipList.map(function(t){return'<li>'+esc(t)+'</li>'}).join('')+'</ul></div>':'')+
+    '<p class="warnline">기본 피드백은 정해진 낱말을 찾는 방식이라 놓치는 정보가 있을 수 있어요. 마지막 판단은 내가 해요.</p>';
+  el.innerHTML=html;
+}
+
+function render(){
+  if(state.answers.length!==allQ().length)state.answers=blankAnswers();
+  if(state.step==='pick')renderPick();
+  else if(state.step==='result')renderResult();
+  else if(state.step==='practice')renderPractice();
+  else if(state.step==='custom')renderCustom();
+  else renderQ(state.step);
+  if(state.step!=='pick'){var h=app.querySelector('h2');if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:true})}}
+  try{app.scrollIntoView({block:'nearest'})}catch(e){}
+}
+updateSub();
+render();
+</script>
+
+</body>
+</html>
